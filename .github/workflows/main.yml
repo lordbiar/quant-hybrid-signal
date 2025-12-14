@@ -5,17 +5,33 @@ on:
     - cron: '5 21 * * 1-5'   # 16:05 ET Mon-Fri
   workflow_dispatch:         # manual button
 
+# ===> THIS IS THE CRITICAL PART <===
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      # ===> THIS IS ALSO CRITICAL <===
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-      - run: pip install -r requirements.txt
-      - run: python run_signals.py
-      - run: |
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run signals script
+        run: python run_signals.py
+
+      - name: Commit and push if changed
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add signals/
