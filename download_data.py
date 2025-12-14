@@ -1,17 +1,24 @@
-import yfinance as yf
-import pandas as pd
-from datetime import datetime, timedelta
+import yfinance as yf, pandas as pd, datetime as dt, time
 
 def load_or_download_data():
-    """Return yesterday’s close for the configured universe."""
     universe = ["SPY", "QQQ", "IWM", "GLD", "BTC-USD", "ETH-USD", "EURUSD=X"]
-    today   = datetime.utcnow().date()
-    start   = today - timedelta(days=5)
-    df = yf.download(universe, start=start, end=today, interval="1d", auto_adjust=True, progress=False)
-    if df.empty:
-        raise RuntimeError("YFinance download failed")
-    close = df["Close"].dropna()
-    # make sure we use the last COMPLETE day only
-    if close.index[-1].date() >= today:
-        close = close.iloc[:-1]
-    return close
+    today = dt.datetime.utcnow().date()
+    start = today - dt.timedelta(days=7)   # wider buffer
+
+    # retry loop for yfinance lock
+    for attempt in range(3):
+        try:
+            df = yf.download(universe, start=start, end=today + dt.timedelta(days=1),
+                             interval="1d", auto_adjust=True, progress=False)
+            if df.empty:
+                raise ValueError("empty download")
+            close = df["Close"].dropna()
+            # keep only COMPLETED market days
+            close = close[close.index.date < today]
+            if close.empty:
+                raise ValueError("no complete bars")
+            return close
+        except Exception as e:
+            if attempt == 2:
+                raise RuntimeError("yfinance failed after 3 retries") from e
+            time.sleep(5)
