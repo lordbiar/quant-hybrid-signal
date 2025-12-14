@@ -1,0 +1,22 @@
+name: Daily Signal
+
+on:
+  schedule:
+    - cron: '5 21 * * 1-5'   # 16:05 ET Mon-Fri
+  workflow_dispatch:         # manual button
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - run: python run_signals.py
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add signals/
+          git diff --cached --quiet || (git commit -m "signal $(date +%F) md5:$(cat signals/$(date +%F).md5)" && git push origin main)
