@@ -5,7 +5,7 @@ on:
     - cron: '5 21 * * 1-5'   # 16:05 ET Mon-Fri
   workflow_dispatch:         # manual button
 
-# Add this permissions block to grant write access to the repository
+# ===> THIS IS THE CRITICAL PART <===
 permissions:
   contents: write
 
@@ -13,32 +13,26 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # Step 1: Check out the repository code
+      # ===> THIS IS ALSO CRITICAL <===
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          # This is crucial! It checks out with a token that has write permissions.
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      # Step 2: Set up the Python environment
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      # Step 3: Install necessary Python packages
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      # Step 4: Run your main script to generate the signals
       - name: Run signals script
         run: python run_signals.py
 
-      # Step 5: Commit and push any new signal files
       - name: Commit and push if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add signals/
-          # Only commit and push if there are actually changes
           git diff --cached --quiet || (git commit -m "signal $(date +%F) md5:$(cat signals/$(date +%F).md5)" && git push origin main)
