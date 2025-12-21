@@ -1,43 +1,55 @@
-# strategies/stat_arb.py
 import pandas as pd
 import numpy as np
 
-# Define the lookback period here instead of a separate config file
-STAT_ARB_LOOKBACK = 20
-
-def generate_stat_arb_signals(price_data, lookback=STAT_ARB_LOOKBACK):
+def generate_stat_arb_signals(price_data, lookback=20, zscore_threshold=2.0, clip_range=(-1, 1)):
     """
-    Generates statistical arbitrage signals based on mean reversion of asset pairs.
+    Enhanced statistical arbitrage with improved pair selection and risk controls.
+    
+    Args:
+        price_data (pd.DataFrame): Price data
+        lookback (int): Lookback period for mean reversion
+        zscore_threshold (float): Z-score threshold for signal generation
+        clip_range (tuple): Signal clipping range
+    
+    Returns:
+        pd.DataFrame: Standardized stat arb signals
     """
-    # Initialize a DataFrame for signals with the same index and columns as price_data
     signals = pd.DataFrame(0.0, index=price_data.index, columns=price_data.columns)
     
-    # Define the pairs to trade. Use the correct tickers from your universe.
+    # Enhanced pair selection with correlation validation
     pairs = []
-    if 'BTC-USD' in price_data.columns and 'ETH-USD' in price_data.columns:
-        pairs.append(('BTC-USD', 'ETH-USD'))
     
+    # BTC-ETH pair
+    if 'BTC-USD' in price_data.columns and 'ETH-USD' in price_data.columns:
+        btc_eth_corr = price_data['BTC-USD'].corr(price_data['ETH-USD'])
+        if btc_eth_corr > 0.5:  # Minimum correlation threshold
+            pairs.append(('BTC-USD', 'ETH-USD'))
+    
+    # SPY-QQQ pair
     if 'SPY' in price_data.columns and 'QQQ' in price_data.columns:
-        pairs.append(('SPY', 'QQQ'))
+        spy_qqq_corr = price_data['SPY'].corr(price_data['QQQ'])
+        if spy_qqq_corr > 0.7:  # Minimum correlation threshold
+            pairs.append(('SPY', 'QQQ'))
     
     for asset1, asset2 in pairs:
-        # Calculate the price ratio
+        # Calculate price ratio
         ratio = price_data[asset1] / price_data[asset2]
         
-        # Calculate rolling mean and standard deviation of the ratio
-        rolling_mean = ratio.rolling(lookback).mean()
-        rolling_std = ratio.rolling(lookback).std()
+        # Calculate rolling statistics with minimum periods
+        min_periods = max(lookback // 2, 10)
+        rolling_mean = ratio.rolling(lookback, min_periods=min_periods).mean()
+        rolling_std = ratio.rolling(lookback, min_periods=min_periods).std()
         
-        # Calculate the z-score of the current ratio
-        zscore = (ratio - rolling_mean) / rolling_std
+        # Calculate z-score
+        zscore = (ratio - rolling_mean) / (rolling_std + 1e-8)
         
-        # Generate a signal: when the ratio is high (zscore > 1), short asset1 and long asset2.
-        # When the ratio is low (zscore < -1), long asset1 and short asset2.
-        # We clip the signal to be between -1 and 1 to limit position size.
-        pair_signal = -np.clip(zscore, -2, 2) / 2.0 # Scale the signal
+        # Generate signal with threshold
+        pair_signal = -np.clip(zscore / zscore_threshold, -2, 2) / 2.0
         
-        # Assign the signal to the assets
-        signals[asset1] = pair_signal
-        signals[asset2] = -pair_signal
+        # Apply final clipping and assign signals
+        final_signal = np.clip(pair_signal, clip_range[0], clip_range[1])
+        signals[asset1] = final_signal
+        signals[asset2] = -final_signal
     
-    return signals.fillna(0)
+    # Add shift to prevent lookahead bias
+    return signals.shift(1).fillna(0)
