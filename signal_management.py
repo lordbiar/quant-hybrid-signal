@@ -1,4 +1,5 @@
 # signal_management.py
+# --- CORRECTED VERSION - DECEMBER 21, 2023 ---
 
 import pandas as pd
 import numpy as np
