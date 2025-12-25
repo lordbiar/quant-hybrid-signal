@@ -1,0 +1,66 @@
+{
+  "date": "2025-12-25",
+  "generation_time_utc": "2025-12-25T21:28:14.551872+00:00",
+  "model_version": "v4.0-enhanced-risk-managed",
+  "universe": [
+    "BTC-USD",
+    "ETH-USD",
+    "EURUSD=X",
+    "GLD",
+    "IWM",
+    "QQQ",
+    "SPY"
+  ],
+  "signal": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "weight": [
+    -0.3333,
+    -0.3333,
+    -0.3333,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "signal_breakdown": {
+    "mean_reversion": [
+      0.8108,
+      -1.0
+    ],
+    "momentum": [
+      0.047,
+      0.0557,
+      0.0273,
+      0.0715
+    ],
+    "stat_arb": [
+      -0.0096,
+      0.0096,
+      0.0,
+      0.0,
+      0.0,
+      0.1275,
+      -0.1275
+    ],
+    "fx_vol": [
+      -1.0
+    ]
+  },
+  "risk_metrics": {
+    "max_position_size": 0.3333333333333333,
+    "sector_exposure": {
+      "equity": 0.0,
+      "crypto": 0.6666666666666666,
+      "commodity": 0.0,
+      "fx": 0.3333333333333333
+    }
+  },
+  "target_vol": "0.10"
+}
